@@ -54,7 +54,7 @@ class GemfireClient:
         else:
             self.error_response(data)
 
-    def create_repository(self, name):
+    def create_repository(self, name, response_transformer = None):
         ''' Initializes and returns a Repository Object '''
         data = self.session.get(self.base_url).json()
         logging.debug("Sending request to " + self.base_url)
@@ -64,7 +64,7 @@ class GemfireClient:
             if n == name:
                 logging.debug("Returned back Repository object for " + name)
                 type = rnames[names.index(name)]["type"]
-                return Repository(name, self.base_url, type)
+                return Repository(name, self.base_url, type, response_transformer)
         else:
             logging.debug("Repository " + name + " does not exist in the server")
             return False

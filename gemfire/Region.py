@@ -15,22 +15,25 @@ import jsonpickle
 
 class Region:
 
-    def __init__(self,name,base_url,type):
+    def __init__(self, name, base_url, type, response_transformer = None):
         ''' Initializes a Region '''
         self.name = name
         self.base_url = base_url
         self.type = type
+        self.response_transformer = response_transformer
         self.session = requests.Session()
 
     def get_all(self):
         ''' Returns all the data in a Region '''
         url = self.base_url + "?ALL"
-        data = requests.get(url)
+        data = self.session.get(url)
         logging.debug("Sending request to " + url)
-        fdata = jsonpickle.decode(data.text)
         if data.status_code == 200:
             logging.debug("Response from server: " + str(data))
-            return fdata[self.name]
+            if self.response_transformer is None:
+                return jsonpickle.decode(data.text)[self.name]
+            else:
+                return self.response_transformer(self.name, data)
         else:
             self.error_response(data)
 
@@ -80,34 +83,21 @@ class Region:
         logging.debug("Sending request to " + url)
         if data.status_code == 200:
             logging.debug("Response from server: " + str(data))
-            return jsonpickle.decode(data.text)
+            if self.response_transformer is None:
+                return jsonpickle.decode(data.text)
+            else:
+                return self.response_transformer(self.name, data)
         else:
             self.error_response(data)
 
     def __getitem__(self, key):
         ''' Method to support region[key] notion '''
-        url = self.base_url + "/" + str(key) + "?ignoreMissingKey=true"
-        data = self.session.get(url)
-        logging.debug("Sending request to " + url)
-        if data.status_code == 200:
-            logging.debug("Response from server: " + str(data))
-            return jsonpickle.decode(data.text)
-        else:
-            self.error_response(data)
+        return self.get(str(key))
 
     def put_all(self, item):
         ''' Insert or updates data for multiple keys specified by a hashtable '''
-        sub_url = ','.join(str(keys) for keys in item)
-        url = self.base_url + "/" + sub_url
-        headers = {'content-type': 'application/json'}
-        jvalue = jsonpickle.encode(list(item.values()))
-        data = self.session.put(url, data=jvalue, headers=headers)
-        logging.debug("Sending request to " + url)
-        if data.status_code == 200:
-            logging.debug(str(item) + " was put into the region")
-            return True
-        else:
-            self.error_response(data)
+        keys = ','.join(str(keys) for keys in item)
+        return self.put(keys, list(item.values()))
 
     def update(self, key, value):
         ''' Updates the data in a region only if the specified key is present '''

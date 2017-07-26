@@ -13,11 +13,12 @@ from gemfire.Region import *
 
 class Repository:
 
-    def __init__(self, name, base_url, type):
+    def __init__(self, name, base_url, type, response_transformer = None):
         ''' Initializes a Repository '''
         self.name = name
         self.base_url = base_url + name
         self.type = type
+        self.response_transformer = response_transformer
         self.region = self.get_region()
 
     def delete(self, entities):
@@ -49,8 +50,7 @@ class Repository:
     def find(self, ids):
         ''' Retrieves Object(s) by the given ID(s) from the region '''
         if isinstance(ids, list):
-            temp = ",".join(str(key) for key in ids)
-            return self.region.get(temp)
+            return self.region.get(*ids)
         else:
             return self.region.get(ids)
 
@@ -66,4 +66,4 @@ class Repository:
 
     def get_region(self):
         ''' Instantiates and returns a Region object '''
-        return Region(self.name, self.base_url, self.type)
+        return Region(self.name, self.base_url, self.type, self.response_transformer)
